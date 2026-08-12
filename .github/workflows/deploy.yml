@@ -33,6 +33,19 @@ jobs:
           ls -la apps/java-app || true
           mvn -f apps/java-app/pom.xml clean package -DskipTests
 
+      - name: Validate AWS Secrets
+        run: |
+          if [ -z "${{ secrets.AWS_ACCESS_KEY_ID }}" ] || [ -z "${{ secrets.AWS_SECRET_ACCESS_KEY }}" ]; then
+            echo "::error::AWS secrets missing. Set AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY in repository Settings → Secrets and variables → Actions."
+            exit 1
+          fi
+
+      - name: Warn if EC2_SSH_KEY missing
+        run: |
+          if [ -z "${{ secrets.EC2_SSH_KEY }}" ]; then
+            echo "::warning::EC2_SSH_KEY not set. The workflow will attempt to import a generated public key into AWS."
+          fi
+
       - name: Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
