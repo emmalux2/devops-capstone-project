@@ -37,21 +37,42 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: us-east-1
 
+      - name: Install AWS CLI
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y awscli
+
+      - name: Generate and register SSH keypair for EC2
+        id: gen_key
+        run: |
+          set -e
+          KEY_NAME="devops-key-${GITHUB_RUN_ID}"
+          mkdir -p ~/.ssh
+          ssh-keygen -t rsa -b 4096 -N "" -f ~/.ssh/${KEY_NAME}
+          aws ec2 import-key-pair --key-name ${KEY_NAME} --public-key-material fileb://~/.ssh/${KEY_NAME}.pub || echo "Key import failed or already exists"
+          echo "KEY_NAME=${KEY_NAME}" >> $GITHUB_ENV
+
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v3
 
       - name: Terraform Init & Apply
         id: terraform
         run: |
+          set -e
           cd terraform
           terraform init
-          terraform apply -auto-approve -var="key_name=my-aws-key"
-          echo "SERVER_IP=$(terraform output -raw server_public_ip)" >> $GITHUB_ENV
+          terraform apply -auto-approve -var="key_name=${KEY_NAME}"
+          echo "SERVER_IP=$(terraform output -raw instance_public_ip)" >> $GITHUB_ENV
+          echo "KEY_NAME=${KEY_NAME}" >> $GITHUB_ENV
 
       - name: Set up SSH Key for Ansible
         run: |
           mkdir -p ~/.ssh
-          echo "${{ secrets.EC2_SSH_KEY }}" > ~/.ssh/id_rsa
+          if [ -f ~/.ssh/${KEY_NAME} ]; then
+            cp ~/.ssh/${KEY_NAME} ~/.ssh/id_rsa
+          else
+            echo "${{ secrets.EC2_SSH_KEY }}" > ~/.ssh/id_rsa
+          fi
           chmod 600 ~/.ssh/id_rsa
           ssh-keyscan -H ${{ env.SERVER_IP }} >> ~/.ssh/known_hosts
 
