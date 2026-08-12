@@ -1,0 +1,73 @@
+Configure the following Secrets in your GitHub repository (Settings -> Secrets and variables -> Actions):
+AWS_ACCESS_KEY_ID
+AWS_SECRET_ACCESS_KEY
+EC2_SSH_KEY (Private SSH Key corresponding to your AWS Key Pair)
+name: DevOps End-to-End Pipeline
+
+on:
+  push:
+    branches: [ "main" ]
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Source Code
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v3
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+
+      - name: Build Java Application (Verification)
+        run: |
+          cd apps/java-app
+          mvn clean package -DskipTests
+
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: us-east-1
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+
+      - name: Terraform Init & Apply
+        id: terraform
+        run: |
+          cd terraform
+          terraform init
+          terraform apply -auto-approve -var="key_name=my-aws-key"
+          echo "SERVER_IP=$(terraform output -raw server_public_ip)" >> $GITHUB_ENV
+
+      - name: Set up SSH Key for Ansible
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.EC2_SSH_KEY }}" > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+          ssh-keyscan -H ${{ env.SERVER_IP }} >> ~/.ssh/known_hosts
+
+      - name: Create Dynamic Ansible Inventory
+        run: |
+          echo "[webservers]" > ansible/inventory.ini
+          echo "server1 ansible_host=${{ env.SERVER_IP }} ansible_user=ubuntu ansible_ssh_private_key_file=~/.ssh/id_rsa" >> ansible/inventory.ini
+
+      - name: Run Ansible Playbook
+        run: |
+          cd ansible
+          ansible-playbook -i inventory.ini playbook.yml
+
+      - name: Deployment Health Check Verification
+        run: |
+          sleep 15
+          echo "Checking Flask Portfolio Application..."
+          curl --fail http://${{ env.SERVER_IP }}:5000/health || exit 1
+          echo "Checking Java Application..."
+          curl --fail http://${{ env.SERVER_IP }}:8080/ || exit 1
+          echo "All services successfully verified!"
+

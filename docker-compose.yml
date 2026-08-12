@@ -1,0 +1,14 @@
+services:
+  portfolio:
+    build:
+      context: ./apps/portfolio
+    ports:
+      - "5000:5000"
+    restart: always
+
+  java-app:
+    build:
+      context: ./apps/java-app
+    ports:
+      - "8080:8080"
+    restart: always
