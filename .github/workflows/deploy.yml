@@ -87,14 +87,19 @@ jobs:
 
       - name: Set up SSH Key for Ansible
         run: |
+          set -e
           mkdir -p ~/.ssh
           if [ -f ~/.ssh/${KEY_NAME} ]; then
             cp ~/.ssh/${KEY_NAME} ~/.ssh/id_rsa
+          elif [ -n "${{ secrets.EC2_SSH_KEY }}" ]; then
+            printf '%s\n' "${{ secrets.EC2_SSH_KEY }}" > ~/.ssh/id_rsa
           else
-            echo "${{ secrets.EC2_SSH_KEY }}" > ~/.ssh/id_rsa
+            echo "No SSH private key available (neither generated nor EC2_SSH_KEY secret)." >&2
+            exit 1
           fi
           chmod 600 ~/.ssh/id_rsa
-          ssh-keyscan -H ${{ env.SERVER_IP }} >> ~/.ssh/known_hosts
+          command -v ssh-keyscan >/dev/null || (sudo apt-get update && sudo apt-get install -y openssh-client)
+          ssh-keyscan -H -T 5 ${{ env.SERVER_IP }} >> ~/.ssh/known_hosts
 
       - name: Create Dynamic Ansible Inventory
         run: |
