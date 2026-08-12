@@ -27,8 +27,11 @@ jobs:
 
       - name: Build Java Application (Verification)
         run: |
-          cd apps/java-app
-          mvn clean package -DskipTests
+          echo "Listing repository root for debugging"
+          ls -la
+          echo "Listing apps/java-app contents"
+          ls -la apps/java-app || true
+          mvn -f apps/java-app/pom.xml clean package -DskipTests
 
       - name: Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@v4
