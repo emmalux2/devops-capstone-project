@@ -7,6 +7,5 @@ variable "instance_type" {
 }
 
 variable "key_name" {
-  description = "Name of the SSH key pair in AWS"
-  type        = string
+  default = "ansykeypair"
 }
