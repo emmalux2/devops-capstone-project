@@ -50,7 +50,5 @@ resource "aws_instance" "app_server" {
   subnet_id              = element(data.aws_subnet_ids.default.ids, 0)
   vpc_security_group_ids = [aws_security_group.devops_sg.id]
   key_name               = var.key_name
-
-  tags = {
-    Name = "AppServer"
-  }
+}
+ 
