@@ -123,6 +123,7 @@ jobs:
           sudo apt-get install -y ansible
       - name: Run Ansible Playbook
         run: |
+          export ANSIBLE_HOST_KEY_CHECKING=False
           cd ansible
           ansible-playbook -i inventory.ini playbook.yml
 
