@@ -14,7 +14,7 @@ data "aws_subnets" "default" {
 }
 
 # Security Group allowing SSH
-resource "aws_security_group" "devops_sg" {
+resource "aws_security_group" "devops_sg011" {
   vpc_id = aws_default_vpc.default.id
   name   = "devops-sg-01"
 
