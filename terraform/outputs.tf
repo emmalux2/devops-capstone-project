@@ -12,4 +12,4 @@ output "subnet_id" {
   description = "Subnet ID where the EC2 instance is launched"
   value       = aws_instance.devops_instance.subnet_id
 }
-#hhh
+#hhhh
