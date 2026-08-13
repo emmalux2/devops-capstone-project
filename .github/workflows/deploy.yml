@@ -106,8 +106,12 @@ jobs:
             exit 1
           fi
           chmod 600 ~/.ssh/id_rsa
-          command -v ssh-keyscan >/dev/null || (sudo apt-get update && sudo apt-get install -y openssh-client)
-          ssh-keyscan -H -T 5 ${{ env.SERVER_IP }} >> ~/.ssh/known_hosts
+          # Ensure ssh-keyscan is available, but don't fail the step if install cannot proceed
+          if ! command -v ssh-keyscan >/dev/null; then
+            sudo apt-get update && sudo apt-get install -y openssh-client || true
+          fi
+          # Attempt to fetch host key but do not fail the job if the host is not yet reachable
+          ssh-keyscan -H -T 5 ${{ env.SERVER_IP }} >> ~/.ssh/known_hosts 2>/dev/null || true
 
       - name: Create Dynamic Ansible Inventory
         run: |
