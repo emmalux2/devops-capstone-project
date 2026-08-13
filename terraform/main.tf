@@ -1,61 +1,16 @@
 provider "aws" {
   region = var.aws_region
 }
+// Use the account's default VPC and an available subnet instead of creating a new VPC.
+data "aws_default_vpc" "default" {}
 
-# Create a VPC
-resource "aws_vpc" "main" {
-  cidr_block           = "10.0.0.0/16"
-  enable_dns_support   = true
-  enable_dns_hostnames = true
-
-  tags = {
-    Name = "main-vpc"
-  }
-}
-
-# Internet Gateway
-resource "aws_internet_gateway" "igw" {
-  vpc_id = aws_vpc.main.id
-
-  tags = {
-    Name = "main-igw"
-  }
-}
-
-# Public Subnet
-resource "aws_subnet" "public_subnet" {
-  vpc_id                  = aws_vpc.main.id
-  cidr_block              = "10.0.1.0/24"
-  map_public_ip_on_launch = true
-
-  tags = {
-    Name = "public-subnet"
-  }
-}
-
-# Route Table
-resource "aws_route_table" "public_rt" {
-  vpc_id = aws_vpc.main.id
-
-  route {
-    cidr_block = "0.0.0.0/0"
-    gateway_id = aws_internet_gateway.igw.id
-  }
-
-  tags = {
-    Name = "public-rt"
-  }
-}
-
-# Associate Route Table with Subnet
-resource "aws_route_table_association" "public_assoc" {
-  subnet_id      = aws_subnet.public_subnet.id
-  route_table_id = aws_route_table.public_rt.id
+data "aws_subnet_ids" "default" {
+  vpc_id = data.aws_default_vpc.default.id
 }
 
 # Security Group allowing SSH
 resource "aws_security_group" "devops_sg" {
-  vpc_id = aws_vpc.main.id
+  vpc_id = data.aws_default_vpc.default.id
   name   = "devops-sg"
 
   ingress {
@@ -88,11 +43,11 @@ data "aws_ami" "ubuntu" {
   }
 }
 
-# EC2 Instance
+# EC2 Instance (launched into the default VPC's first subnet)
 resource "aws_instance" "app_server" {
   ami                    = data.aws_ami.ubuntu.id
   instance_type          = var.instance_type
-  subnet_id              = aws_subnet.public_subnet.id
+  subnet_id              = element(data.aws_subnet_ids.default.ids, 0)
   vpc_security_group_ids = [aws_security_group.devops_sg.id]
   key_name               = var.key_name
 

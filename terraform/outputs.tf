@@ -13,7 +13,7 @@ output "instance_public_dns" {
 # Show the subnet ID used
 output "subnet_id" {
   description = "Subnet ID where the EC2 instance is launched"
-  value       = aws_subnet.public_subnet.id
+  value       = aws_instance.app_server.subnet_id
 }
 
 # Show the security group ID used
