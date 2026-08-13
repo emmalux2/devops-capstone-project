@@ -1,16 +1,21 @@
 provider "aws" {
   region = var.aws_region
 }
-// Use the account's default VPC and an available subnet instead of creating a new VPC.
-data "aws_default_vpc" "default" {}
 
-data "aws_subnet_ids" "default" {
-  vpc_id = data.aws_default_vpc.default.id
+# Ensure the account's default VPC exists
+resource "aws_default_vpc" "default" {}
+
+# Get all subnets in the default VPC
+data "aws_subnets" "default" {
+  filter {
+    name   = "vpc-id"
+    values = [aws_default_vpc.default.id]
+  }
 }
 
 # Security Group allowing SSH
 resource "aws_security_group" "devops_sg" {
-  vpc_id = data.aws_default_vpc.default.id
+  vpc_id = aws_default_vpc.default.id
   name   = "devops-sg"
 
   ingress {
@@ -44,11 +49,15 @@ data "aws_ami" "ubuntu" {
 }
 
 # EC2 Instance (launched into the default VPC's first subnet)
-resource "aws_instance" "app_server" {
-  ami                    = data.aws_ami.ubuntu.id
-  instance_type          = var.instance_type
-  subnet_id              = element(data.aws_subnet_ids.default.ids, 0)
+resource "aws_instance" "devops_instance" {
+  ami           = data.aws_ami.ubuntu.id
+  instance_type = var.instance_type
+  key_name      = var.key_name
+  subnet_id     = data.aws_subnets.default.ids[0]
+
   vpc_security_group_ids = [aws_security_group.devops_sg.id]
-  key_name               = var.key_name
+
+  tags = {
+    Name = "devops-instance"
+  }
 }
- 
