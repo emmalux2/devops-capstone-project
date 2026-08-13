@@ -100,5 +100,3 @@ resource "aws_instance" "app_server" {
     Name = "AppServer"
   }
 }
-
-# (Outputs are defined in outputs.tf)
