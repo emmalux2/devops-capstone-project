@@ -89,12 +89,20 @@ jobs:
         run: |
           set -e
           mkdir -p ~/.ssh
+          echo "DEBUG: listing ~/.ssh contents"
+          ls -la ~/.ssh || true
+          echo "DEBUG: KEY_NAME=$KEY_NAME"
+          echo "DEBUG: checking for ~/.ssh/${KEY_NAME}"
           if [ -f ~/.ssh/${KEY_NAME} ]; then
+            echo "DEBUG: found generated key ~/.ssh/${KEY_NAME}, copying to id_rsa"
             cp ~/.ssh/${KEY_NAME} ~/.ssh/id_rsa
           elif [ -n "${{ secrets.EC2_SSH_KEY }}" ]; then
+            echo "DEBUG: EC2_SSH_KEY secret present, writing to ~/.ssh/id_rsa (content masked)"
             printf '%s\n' "${{ secrets.EC2_SSH_KEY }}" > ~/.ssh/id_rsa
           else
             echo "No SSH private key available (neither generated nor EC2_SSH_KEY secret)." >&2
+            echo "DEBUG: final ~/.ssh listing:" >&2
+            ls -la ~/.ssh || true
             exit 1
           fi
           chmod 600 ~/.ssh/id_rsa
