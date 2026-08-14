@@ -3,7 +3,7 @@ terraform {
     bucket         = "my-terraform-state-ansy"   # Name of your S3 bucket
     key            = "devops/terraform.tfstate"  # Path inside the bucket
     region         = "us-east-1"            # Region where the bucket exists
-    Use_Lockfile = "true"                   # Lockfile  for state locking
+    Use_lockfile = "true"                   # Lockfile  for state locking
     encrypt        = true                   # Encrypt state at rest
   }
 }
