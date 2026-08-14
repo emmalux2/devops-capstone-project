@@ -20,14 +20,21 @@
           - rsync
         state: present
 
-    - name: Add Docker's official GPG key
-      apt_key:
+    - name: Add Docker’s official GPG key
+      ansible.builtin.get_url:
         url: https://download.docker.com/linux/ubuntu/gpg
-        state: present
+        dest: /usr/share/keyrings/docker-archive-keyring.gpg
+        mode: '0644'
 
-    - name: Add Docker repository
-      apt_repository:
-        repo: "deb [arch=amd64] https://download.docker.com/linux/ubuntu {{ ansible_distribution_release }} stable"
+    - name: Add Docker repository using deb822_repository
+      deb822_repository:
+        name: docker
+        types: [deb]
+        uris: ["https://download.docker.com/linux/ubuntu"]
+        suites: ["{{ ansible_distribution_release }}"]
+        components: ["stable"]
+        architectures: ["amd64"]
+        signed_by: /usr/share/keyrings/docker-archive-keyring.gpg
         state: present
 
     - name: Install Docker Engine & Compose plugin
@@ -38,6 +45,7 @@
           - containerd.io
           - docker-compose-plugin
         state: present
+        update_cache: yes
 
     - name: Ensure Docker service is running
       systemd:
