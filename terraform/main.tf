@@ -3,7 +3,7 @@ terraform {
     bucket         = "my-terraform-state-ansy"   # Name of your S3 bucket
     key            = "devops/terraform.tfstate"  # Path inside the bucket
     region         = "us-east-1"            # Region where the bucket exists
-    dynamodb_table = "terraform-locks"      # DynamoDB table for state locking
+    Use_Lockfile = "true"                   # Lockfile  for state locking
     encrypt        = true                   # Encrypt state at rest
   }
 }
@@ -65,12 +65,19 @@ resource "aws_security_group" "devops_sg" {
 
 # Fetch a fixed Ubuntu AMI (pin version to avoid recreation)
 data "aws_ami" "ubuntu" {
-  owners      = ["099720109477"] # Canonical
+  most_recent = true
 
   filter {
     name   = "name"
-    values = ["ubuntu/images/hvm-ssd-gp3/ubuntu-noble-24.04-amd64-server-20240701"] # pin to a specific version
+    values = ["ubuntu/images/hvm-ssd/ubuntu-focal-20.04-amd64-server-*"]
   }
+
+  filter {
+    name   = "virtualization-type"
+    values = ["hvm"]
+  }
+
+  owners = ["099720109477"] # Canonical's official AWS account ID
 }
 
 # EC2 Instance
