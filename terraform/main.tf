@@ -19,12 +19,17 @@ resource "aws_security_group" "devops_sg" {
   name   = "devops-sg-01"
 
   ingress {
-    from_port   = 22
-    to_port     = 22
+    from_port   = 5000
+    to_port     = 5000
     protocol    = "tcp"
     cidr_blocks = ["0.0.0.0/0"] # For testing; restrict to your IP in production
   }
-
+    ingress {
+    from_port   = 8080
+    to_port     = 8080
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"] # For testing; restrict to your IP in production
+  }
   egress {
     from_port   = 0
     to_port     = 0
