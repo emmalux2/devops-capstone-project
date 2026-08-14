@@ -3,11 +3,14 @@
   hosts: webservers
   become: yes
   tasks:
-    - name: Reinstall python3-apt and command-not-found
-      ansible.builtin.command: apt-get install --reinstall -y python3-apt command-not-found
+    - name: Remove broken command-not-found package
+      ansible.builtin.command: apt-get remove --purge -y command-not-found
 
-    - name: Update apt package index (skip cnf-update-db)
-      ansible.builtin.command: apt-get update -o APT::Update::Post-Invoke-Success="true"
+    - name: Reinstall python3-apt
+      ansible.builtin.command: apt-get install --reinstall -y python3-apt
+
+    - name: Update apt package index
+      ansible.builtin.command: apt-get update
 
     - name: Install prerequisite packages
       apt:
