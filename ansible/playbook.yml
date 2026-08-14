@@ -7,7 +7,7 @@
       ansible.builtin.command: apt-get install --reinstall -y python3-apt command-not-found
 
     - name: Update apt package index (skip cnf-update-db)
-      ansible.builtin.command: apt-get update -o APT::Update::Post-Invoke-Success=""
+      ansible.builtin.command: apt-get update -o APT::Update::Post-Invoke-Success="true"
 
     - name: Install prerequisite packages
       apt:
