@@ -3,6 +3,12 @@
   hosts: webservers
   become: yes
   tasks:
+    - name: Ensure python3-apt is installed/reinstalled
+      apt:
+        name: python3-apt
+        state: present
+        update_cache: yes
+
     - name: Update apt package index
       apt:
         update_cache: yes
