@@ -1,40 +1,56 @@
+terraform {
+  backend "s3" {
+    bucket         = "my-terraform-state-ansy"   # Name of your S3 bucket
+    key            = "devops/terraform.tfstate"  # Path inside the bucket
+    region         = "us-east-1"            # Region where the bucket exists
+    dynamodb_table = "terraform-locks"      # DynamoDB table for state locking
+    encrypt        = true                   # Encrypt state at rest
+  }
+}
+
 provider "aws" {
   region = var.aws_region
 }
 
-# Ensure the account's default VPC exists
-resource "aws_default_vpc" "default" {}
+# Reference the default VPC instead of recreating it
+data "aws_vpc" "default" {
+  default = true
+}
 
 # Get all subnets in the default VPC
 data "aws_subnets" "default" {
   filter {
     name   = "vpc-id"
-    values = [aws_default_vpc.default.id]
+    values = [data.aws_vpc.default.id]
   }
 }
 
-# Security Group allowing SSH
+# Security Group allowing SSH + app ports
 resource "aws_security_group" "devops_sg" {
-  vpc_id = aws_default_vpc.default.id
+  vpc_id = data.aws_vpc.default.id
   name   = "devops-sg-01"
+
   ingress {
     from_port   = 22
     to_port     = 22
     protocol    = "tcp"
     cidr_blocks = ["0.0.0.0/0"]
   }
+
   ingress {
     from_port   = 5000
     to_port     = 5000
     protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"] # For testing; restrict to your IP in production
+    cidr_blocks = ["0.0.0.0/0"]
   }
-    ingress {
+
+  ingress {
     from_port   = 8080
     to_port     = 8080
     protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"] # For testing; restrict to your IP in production
+    cidr_blocks = ["0.0.0.0/0"]
   }
+
   egress {
     from_port   = 0
     to_port     = 0
@@ -47,18 +63,17 @@ resource "aws_security_group" "devops_sg" {
   }
 }
 
-# Fetch latest Ubuntu 24.04 AMI
+# Fetch a fixed Ubuntu AMI (pin version to avoid recreation)
 data "aws_ami" "ubuntu" {
-  most_recent = true
   owners      = ["099720109477"] # Canonical
 
   filter {
     name   = "name"
-    values = ["ubuntu/images/hvm-ssd-gp3/ubuntu-noble-24.04-amd64-server-*"]
+    values = ["ubuntu/images/hvm-ssd-gp3/ubuntu-noble-24.04-amd64-server-20240701"] # pin to a specific version
   }
 }
 
-# EC2 Instance (launched into the default VPC's first subnet)
+# EC2 Instance
 resource "aws_instance" "devops_instance" {
   ami           = data.aws_ami.ubuntu.id
   instance_type = var.instance_type
