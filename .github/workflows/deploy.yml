@@ -1,7 +1,3 @@
- # Configure the following Secrets in your GitHub repository (Settings -> Secrets and variables -> Actions):
- # AWS_ACCESS_KEY_ID
- # AWS_SECRET_ACCESS_KEY
- # EC2_SSH_KEY (Private SSH Key corresponding to your AWS Key Pair)
 name: DevOps End-to-End Pipeline
 
 on:
@@ -27,24 +23,7 @@ jobs:
 
       - name: Build Java Application (Verification)
         run: |
-          echo "Listing repository root for debugging"
-          ls -la
-          echo "Listing apps/java-app contents"
-          ls -la apps/java-app || true
           mvn -f apps/java-app/pom.xml clean package -DskipTests
-
-      - name: Validate AWS Secrets
-        run: |
-          if [ -z "${{ secrets.AWS_ACCESS_KEY_ID }}" ] || [ -z "${{ secrets.AWS_SECRET_ACCESS_KEY }}" ]; then
-            echo "::error::AWS secrets missing. Set AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY in repository Settings → Secrets and variables → Actions."
-            exit 1
-          fi
-
-      - name: Warn if EC2_SSH_KEY missing
-        run: |
-          if [ -z "${{ secrets.EC2_SSH_KEY }}" ]; then
-            echo "::warning::EC2_SSH_KEY not set. The workflow will attempt to import a generated public key into AWS."
-          fi
 
       - name: Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@v4
@@ -53,74 +32,35 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: us-east-1
 
-      - name: Install AWS CLI
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y unzip
-          curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
-          unzip awscliv2.zip
-          sudo ./aws/install --update -i /usr/local/aws-cli -b /usr/local/bin
-          rm -rf awscliv2.zip aws
-
-      - name: Generate and register SSH keypair for EC2
-        id: gen_key
-        run: |
-          set -e
-          KEY_NAME="devops-key-${GITHUB_RUN_ID}"
-          mkdir -p ~/.ssh
-          ssh-keygen -t rsa -b 4096 -N "" -f ~/.ssh/${KEY_NAME}
-          aws ec2 import-key-pair --key-name ${KEY_NAME} --public-key-material fileb://~/.ssh/${KEY_NAME}.pub || echo "Key import failed or already exists"
-          echo "KEY_NAME=${KEY_NAME}" >> $GITHUB_ENV
-
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v3
 
       - name: Terraform Init & Apply
         id: terraform
         run: |
-          set -e
           cd terraform
           terraform init
-          terraform apply -auto-approve -var="key_name=${KEY_NAME}"
+          terraform apply -auto-approve -var="key_name=ansykeypair"
           echo "SERVER_IP=$(terraform output -raw instance_public_ip)" >> $GITHUB_ENV
-          echo "KEY_NAME=${KEY_NAME}" >> $GITHUB_ENV
 
       - name: Set up SSH Key for Ansible
         run: |
-          set -e
           mkdir -p ~/.ssh
-          echo "DEBUG: listing ~/.ssh contents"
-          ls -la ~/.ssh || true
-          echo "DEBUG: KEY_NAME=$KEY_NAME"
-          echo "DEBUG: checking for ~/.ssh/${KEY_NAME}"
-          if [ -f ~/.ssh/${KEY_NAME} ]; then
-            echo "DEBUG: found generated key ~/.ssh/${KEY_NAME}, copying to id_rsa"
-            cp ~/.ssh/${KEY_NAME} ~/.ssh/id_rsa
-          elif [ -n "${{ secrets.EC2_SSH_KEY }}" ]; then
-            echo "DEBUG: EC2_SSH_KEY secret present, writing to ~/.ssh/id_rsa (content masked)"
-            printf '%s\n' "${{ secrets.EC2_SSH_KEY }}" > ~/.ssh/id_rsa
-          else
-            echo "No SSH private key available (neither generated nor EC2_SSH_KEY secret)." >&2
-            echo "DEBUG: final ~/.ssh listing:" >&2
-            ls -la ~/.ssh || true
-            exit 1
-          fi
+          # Use the private key stored in GitHub Secrets
+          printf '%s\n' "${{ secrets.EC2_SSH_KEY }}" > ~/.ssh/id_rsa
           chmod 600 ~/.ssh/id_rsa
-          # Ensure ssh-keyscan is available, but don't fail the step if install cannot proceed
-          if ! command -v ssh-keyscan >/dev/null; then
-            sudo apt-get update && sudo apt-get install -y openssh-client || true
-          fi
-          # Attempt to fetch host key but do not fail the job if the host is not yet reachable
           ssh-keyscan -H -T 5 ${{ env.SERVER_IP }} >> ~/.ssh/known_hosts 2>/dev/null || true
 
       - name: Create Dynamic Ansible Inventory
         run: |
           echo "[webservers]" > ansible/inventory.ini
           echo "server1 ansible_host=${{ env.SERVER_IP }} ansible_user=ubuntu ansible_ssh_private_key_file=~/.ssh/id_rsa" >> ansible/inventory.ini
+
       - name: Install Ansible
         run: |
           sudo apt-get update
           sudo apt-get install -y ansible
+
       - name: Run Ansible Playbook
         run: |
           export ANSIBLE_HOST_KEY_CHECKING=False
@@ -130,9 +70,6 @@ jobs:
       - name: Deployment Health Check Verification
         run: |
           sleep 15
-          echo "Checking Flask Portfolio Application..."
           curl --fail http://${{ env.SERVER_IP }}:5000/health || exit 1
-          echo "Checking Java Application..."
           curl --fail http://${{ env.SERVER_IP }}:8080/ || exit 1
           echo "All services successfully verified!"
-
