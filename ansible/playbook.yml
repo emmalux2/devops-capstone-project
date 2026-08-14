@@ -9,10 +9,8 @@
         state: present
         update_cache: yes
 
-    - name: Update apt package index
-      apt:
-        update_cache: yes
-        cache_valid_time: 3600
+    - name: Update apt package index (skip cnf-update-db)
+      ansible.builtin.command: apt-get update -o APT::Update::Post-Invoke-Success=""
 
     - name: Install prerequisite packages
       apt:
