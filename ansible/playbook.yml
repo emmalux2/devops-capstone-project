@@ -58,8 +58,17 @@
         rsync_opts:
           - "--exclude=.git"
           - "--exclude=terraform"
+    - name: Clone project repository
+  ansible.builtin.git:
+    repo: 'https://github.com/emmalux2/devops-capstone-project.git'
+    dest: /home/ubuntu/devops-capstone-project
+    version: main
 
-    - name: Deploy applications using Docker Compose
-      command: docker compose up -d --build
-      args:
-        chdir: /home/ubuntu/app
+- name: Debug - list project directory contents
+  ansible.builtin.command:
+    cmd: ls -la
+    chdir: /home/ubuntu/devops-capstone-project
+- name: Deploy applications using Docker Compose
+  ansible.builtin.command:
+    cmd: docker compose up -d --build
+    chdir: /home/ubuntu/app
