@@ -17,7 +17,12 @@ data "aws_subnets" "default" {
 resource "aws_security_group" "devops_sg" {
   vpc_id = aws_default_vpc.default.id
   name   = "devops-sg-01"
-
+  ingress {
+    from_port   = 22
+    to_port     = 22
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
   ingress {
     from_port   = 5000
     to_port     = 5000
