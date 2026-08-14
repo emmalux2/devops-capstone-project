@@ -2,87 +2,132 @@
 - name: Configure Server & Deploy Container Applications
   hosts: webservers
   become: yes
+
+  vars:
+    ansible_python_interpreter: /usr/bin/python3
+
+  pre_tasks:
+
+    - name: Bootstrap Python dependencies
+      ansible.builtin.raw: |
+        apt-get update &&
+        apt-get install -y python3 python3-apt python3-debian
+      changed_when: false
+
+    - name: Gather facts
+      ansible.builtin.setup:
+
   tasks:
-    - name: Remove broken command-not-found package
-      ansible.builtin.command: apt-get remove --purge -y command-not-found
 
-    - name: Reinstall python3-apt
-      ansible.builtin.command: apt-get install --reinstall -y python3-apt
-
-    - name: Update apt package index
-      ansible.builtin.command: apt-get update
+    - name: Update apt package cache
+      ansible.builtin.apt:
+        update_cache: yes
+        cache_valid_time: 3600
 
     - name: Install prerequisite packages
-      apt:
+      ansible.builtin.apt:
         name:
           - ca-certificates
           - curl
           - gnupg
           - lsb-release
           - git
+          - python3
+          - python3-apt
+          - python3-debian
           - python3-pip
-          - rsync
         state: present
 
-    - name: Add Docker’s official GPG key
+    - name: Create Docker keyrings directory
+      ansible.builtin.file:
+        path: /etc/apt/keyrings
+        state: directory
+        mode: "0755"
+
+    - name: Download Docker GPG key
       ansible.builtin.get_url:
         url: https://download.docker.com/linux/ubuntu/gpg
-        dest: /usr/share/keyrings/docker-archive-keyring.gpg
-        mode: '0644'
+        dest: /etc/apt/keyrings/docker.asc
+        mode: "0644"
+        force: true
 
-    - name: Add Docker repository using deb822_repository
-      deb822_repository:
+    - name: Add Docker repository
+      ansible.builtin.deb822_repository:
         name: docker
-        types: [deb]
-        uris: ["https://download.docker.com/linux/ubuntu"]
-        suites: ["{{ ansible_distribution_release }}"]
-        components: ["stable"]
-        architectures: ["amd64"]
-        signed_by: /usr/share/keyrings/docker-archive-keyring.gpg
+        types:
+          - deb
+        uris:
+          - https://download.docker.com/linux/ubuntu
+        suites:
+          - "{{ ansible_distribution_release }}"
+        components:
+          - stable
+        architectures:
+          - amd64
+        signed_by: /etc/apt/keyrings/docker.asc
         state: present
 
-    - name: Install Docker Engine & Compose plugin
-      apt:
+    - name: Update apt cache after adding Docker repository
+      ansible.builtin.apt:
+        update_cache: yes
+
+    - name: Install Docker
+      ansible.builtin.apt:
         name:
           - docker-ce
           - docker-ce-cli
           - containerd.io
+          - docker-buildx-plugin
           - docker-compose-plugin
         state: present
-        update_cache: yes
 
-    - name: Ensure Docker service is running
-      systemd:
+    - name: Ensure Docker is running
+      ansible.builtin.systemd:
         name: docker
         state: started
         enabled: yes
 
-    - name: Add user to docker group
-      user:
+    - name: Add ubuntu user to docker group
+      ansible.builtin.user:
         name: ubuntu
         groups: docker
         append: yes
 
-    - name: Synchronize project repository files to server
-      synchronize:
-        src: "../"
-        dest: "/home/ubuntu/app"
-        rsync_opts:
-          - "--exclude=.git"
-          - "--exclude=terraform"
+    - name: Remove old project directory
+      ansible.builtin.file:
+        path: /home/ubuntu/devops-capstone-project
+        state: absent
 
     - name: Clone project repository
       ansible.builtin.git:
-        repo: 'https://github.com/emmalux2/devops-capstone-project.git'
+        repo: "https://github.com/emmalux2/devops-capstone-project.git"
         dest: /home/ubuntu/devops-capstone-project
         version: main
 
-    - name: Debug - list project directory contents
+    - name: Set project ownership
+      ansible.builtin.file:
+        path: /home/ubuntu/devops-capstone-project
+        owner: ubuntu
+        group: ubuntu
+        recurse: yes
+
+    - name: Show project files
       ansible.builtin.command:
         cmd: ls -la
         chdir: /home/ubuntu/devops-capstone-project
+      changed_when: false
 
-    - name: Deploy applications using Docker Compose
+    - name: Build and start application
       ansible.builtin.command:
         cmd: docker compose up -d --build
         chdir: /home/ubuntu/devops-capstone-project
+
+    - name: Check running containers
+      ansible.builtin.command:
+        cmd: docker ps
+      register: docker_ps
+      changed_when: false
+
+    - name: Display running containers
+      ansible.builtin.debug:
+        var: docker_ps.stdout_lines
