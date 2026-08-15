@@ -5,60 +5,85 @@
   gather_facts: false
 
   vars:
-    ansible_python_interpreter: /usr/bin/python3.8
+    # Ansible requires Python 3.9+ on the target server
+    ansible_python_interpreter: /usr/bin/python3.9
 
   pre_tasks:
 
-    - name: Update apt cache (raw, no python required)
-      ansible.builtin.raw: apt-get update -y
+    # ---------------------------------------------------------
+    # 1. Update package repositories
+    # ---------------------------------------------------------
+    - name: Update apt cache
+      ansible.builtin.raw: apt-get update
       changed_when: false
       register: apt_update_result
       retries: 3
       delay: 5
       until: apt_update_result.rc == 0
 
+    # ---------------------------------------------------------
+    # 2. Fix any interrupted/broken package configuration
+    # ---------------------------------------------------------
     - name: Fix any broken dpkg state
       ansible.builtin.raw: dpkg --configure -a
       changed_when: false
 
-    - name: Force reinstall Python apt bindings
+    # ---------------------------------------------------------
+    # 3. Ensure Python 3.9 is installed
+    # ---------------------------------------------------------
+    - name: Install Python 3.9
       ansible.builtin.raw: >
-        apt-get install -y --reinstall
-        python3.8 python3-apt python3-debian
-      register: bootstrap_result
-      changed_when: "'0 upgraded, 0 newly installed' not in bootstrap_result.stdout"
-      failed_when: bootstrap_result.rc != 0
-
-    - name: Verify python3-apt is actually importable
-      ansible.builtin.raw: sudo -H /usr/bin/python3.8 -c "import apt; print('python3-apt OK')"
-      register: apt_import_check
+        apt-get install -y
+        python3.9
+        python3.9-venv
+      register: python_install
       changed_when: false
-      failed_when: "'python3-apt OK' not in apt_import_check.stdout"
-      become: false
+      failed_when: python_install.rc != 0
 
+    # ---------------------------------------------------------
+    # 4. Verify Python 3.9
+    # ---------------------------------------------------------
+    - name: Verify Python 3.9
+      ansible.builtin.raw: /usr/bin/python3.9 --version
+      register: python_version
+      changed_when: false
+      failed_when: python_version.rc != 0
+
+    - name: Display Python version
+      ansible.builtin.debug:
+        var: python_version.stdout
+
+    # ---------------------------------------------------------
+    # 5. Gather facts using Python 3.9
+    # ---------------------------------------------------------
     - name: Gather facts
       ansible.builtin.setup:
 
+
   tasks:
 
-    - name: Update apt package cache
-      ansible.builtin.apt:
-        update_cache: yes
-        cache_valid_time: 3600
+    # =========================================================
+    # SYSTEM PREREQUISITES
+    # =========================================================
 
     - name: Install prerequisite packages
-      ansible.builtin.apt:
-        name:
-          - ca-certificates
-          - curl
-          - gnupg
-          - lsb-release
-          - git
-          - python3
-          - python3-apt
-          - python3-debian
-          - python3-pip
-        state: present
+      ansible.builtin.raw: >
+        apt-get install -y
+        ca-certificates
+        curl
+        gnupg
+        lsb-release
+        git
+        python3.9
+        python3.9-venv
+      register: prerequisites
+      changed_when: false
+      failed_when: prerequisites.rc != 0
+
+
+    # =========================================================
+    # DOCKER REPOSITORY
+    # =========================================================
 
     - name: Create Docker keyrings directory
       ansible.builtin.file:
@@ -67,43 +92,51 @@
         mode: "0755"
 
     - name: Download Docker GPG key
-      ansible.builtin.get_url:
-        url: https://download.docker.com/linux/ubuntu/gpg
-        dest: /etc/apt/keyrings/docker.asc
+      ansible.builtin.raw: >
+        curl -fsSL
+        https://download.docker.com/linux/ubuntu/gpg
+        -o /etc/apt/keyrings/docker.asc
+      register: docker_gpg
+      changed_when: false
+      failed_when: docker_gpg.rc != 0
+
+    - name: Set Docker GPG key permissions
+      ansible.builtin.file:
+        path: /etc/apt/keyrings/docker.asc
         mode: "0644"
-        force: true
 
     - name: Add Docker repository
-      ansible.builtin.deb822_repository:
-        name: docker
-        types:
-          - deb
-        uris:
-          - https://download.docker.com/linux/ubuntu
-        suites:
-          - "{{ ansible_distribution_release }}"
-        components:
-          - stable
-        architectures:
-          - amd64
-        signed_by: /etc/apt/keyrings/docker.asc
-        state: present
+      ansible.builtin.raw: |
+        echo "deb [arch=amd64 signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/ubuntu focal stable" \
+        > /etc/apt/sources.list.d/docker.list
+      register: docker_repo
+      changed_when: false
+      failed_when: docker_repo.rc != 0
 
     - name: Update apt cache after adding Docker repository
-      ansible.builtin.apt:
-        update_cache: yes
+      ansible.builtin.raw: apt-get update
+      register: docker_apt_update
+      changed_when: false
+      failed_when: docker_apt_update.rc != 0
 
-    - name: Install Docker
-      ansible.builtin.apt:
-        name:
-          - docker-ce
-          - docker-ce-cli
-          - containerd.io
-          - docker-buildx-plugin
-          - docker-compose-plugin
-        state: present
 
-    - name: Ensure Docker is running
+    # =========================================================
+    # INSTALL DOCKER
+    # =========================================================
+
+    - name: Install Docker Engine and Compose
+      ansible.builtin.raw: >
+        apt-get install -y
+        docker-ce
+        docker-ce-cli
+        containerd.io
+        docker-buildx-plugin
+        docker-compose-plugin
+      register: docker_install
+      changed_when: false
+      failed_when: docker_install.rc != 0
+
+    - name: Ensure Docker service is running
       ansible.builtin.systemd:
         name: docker
         state: started
@@ -115,6 +148,36 @@
         groups: docker
         append: yes
 
+
+    # =========================================================
+    # VERIFY DOCKER
+    # =========================================================
+
+    - name: Check Docker version
+      ansible.builtin.command:
+        cmd: docker --version
+      register: docker_version
+      changed_when: false
+
+    - name: Display Docker version
+      ansible.builtin.debug:
+        var: docker_version.stdout
+
+    - name: Check Docker Compose version
+      ansible.builtin.command:
+        cmd: docker compose version
+      register: compose_version
+      changed_when: false
+
+    - name: Display Docker Compose version
+      ansible.builtin.debug:
+        var: compose_version.stdout
+
+
+    # =========================================================
+    # APPLICATION DEPLOYMENT
+    # =========================================================
+
     - name: Remove old project directory
       ansible.builtin.file:
         path: /home/ubuntu/devops-capstone-project
@@ -125,6 +188,7 @@
         repo: "https://github.com/emmalux2/devops-capstone-project.git"
         dest: /home/ubuntu/devops-capstone-project
         version: main
+        force: yes
 
     - name: Set project ownership
       ansible.builtin.file:
@@ -149,6 +213,7 @@
         cmd: docker ps
       register: docker_ps
       changed_when: false
+
     - name: Display running containers
       ansible.builtin.debug:
         var: docker_ps.stdout_lines
