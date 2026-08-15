@@ -30,10 +30,11 @@
       failed_when: bootstrap_result.rc != 0
 
     - name: Verify python3-apt is actually importable
-      ansible.builtin.raw: /usr/bin/python3.8 -c "import apt; print('python3-apt OK')"
+      ansible.builtin.raw: sudo -H /usr/bin/python3.8 -c "import apt; print('python3-apt OK')"
       register: apt_import_check
       changed_when: false
       failed_when: "'python3-apt OK' not in apt_import_check.stdout"
+      become: false
 
     - name: Gather facts
       ansible.builtin.setup:
