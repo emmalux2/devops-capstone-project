@@ -2,18 +2,649 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>IWEBOR EMMANUEL DevOps Portfolio</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <!-- Automatically reload the entire page every 5 seconds -->
+    <meta http-equiv="refresh" content="5">
+
+    <title>IWEBOR EMMANUEL | Cloud & DevOps Engineer</title>
+
     <style>
-        body { font-family: Arial, sans-serif; text-align: center; margin-top: 50px; background-color: #f4f4f9; }
-        h1 { color: #2c3e50; }
-        .card { background: white; padding: 20px; border-radius: 8px; display: inline-block; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: Arial, Helvetica, sans-serif;
+            min-height: 100vh;
+
+            display: flex;
+            justify-content: center;
+            align-items: center;
+
+            color: white;
+
+            background:
+                linear-gradient(
+                    135deg,
+                    #0f2027,
+                    #203a43,
+                    #2c5364
+                );
+
+            overflow: hidden;
+        }
+
+        /* Animated background circles */
+
+        body::before {
+            content: "";
+
+            position: absolute;
+
+            width: 500px;
+            height: 500px;
+
+            background:
+                linear-gradient(
+                    45deg,
+                    #00f2fe,
+                    #4facfe
+                );
+
+            border-radius: 50%;
+
+            top: -200px;
+            left: -150px;
+
+            opacity: 0.25;
+
+            filter: blur(10px);
+
+            animation: float 8s infinite alternate;
+        }
+
+        body::after {
+            content: "";
+
+            position: absolute;
+
+            width: 500px;
+            height: 500px;
+
+            background:
+                linear-gradient(
+                    45deg,
+                    #ff00cc,
+                    #3333ff
+                );
+
+            border-radius: 50%;
+
+            bottom: -250px;
+            right: -150px;
+
+            opacity: 0.25;
+
+            filter: blur(10px);
+
+            animation: float 10s infinite alternate-reverse;
+        }
+
+        @keyframes float {
+
+            from {
+                transform: translate(0, 0);
+            }
+
+            to {
+                transform: translate(50px, 40px);
+            }
+        }
+
+        /* Main card */
+
+        .container {
+            position: relative;
+
+            z-index: 2;
+
+            width: 90%;
+            max-width: 750px;
+
+            padding: 45px;
+
+            text-align: center;
+
+            border-radius: 25px;
+
+            background:
+                rgba(255, 255, 255, 0.12);
+
+            backdrop-filter: blur(15px);
+
+            -webkit-backdrop-filter: blur(15px);
+
+            border:
+                1px solid rgba(255, 255, 255, 0.2);
+
+            box-shadow:
+                0 20px 50px rgba(0, 0, 0, 0.4);
+        }
+
+        /* Rocket */
+
+        .icon {
+            font-size: 60px;
+
+            margin-bottom: 15px;
+
+            animation:
+                rocket 2s infinite alternate;
+        }
+
+        @keyframes rocket {
+
+            from {
+                transform: translateY(0);
+            }
+
+            to {
+                transform: translateY(-10px);
+            }
+        }
+
+        /* Heading */
+
+        h1 {
+            font-size: 42px;
+
+            margin-bottom: 10px;
+
+            background:
+                linear-gradient(
+                    90deg,
+                    #00f2fe,
+                    #4facfe,
+                    #ff00cc
+                );
+
+            -webkit-background-clip: text;
+
+            -webkit-text-fill-color: transparent;
+        }
+
+        .subtitle {
+            font-size: 20px;
+
+            color: #dbeafe;
+
+            margin-bottom: 25px;
+        }
+
+        .description {
+            font-size: 16px;
+
+            line-height: 1.7;
+
+            color: #e5e7eb;
+
+            margin-bottom: 30px;
+        }
+
+        /* Technologies */
+
+        .technologies {
+
+            display: flex;
+
+            justify-content: center;
+
+            flex-wrap: wrap;
+
+            gap: 10px;
+
+            margin-bottom: 35px;
+        }
+
+        .tech {
+
+            padding: 9px 16px;
+
+            border-radius: 20px;
+
+            font-size: 13px;
+
+            font-weight: bold;
+
+            background:
+                linear-gradient(
+                    135deg,
+                    #667eea,
+                    #764ba2
+                );
+
+            box-shadow:
+                0 5px 15px rgba(0,0,0,0.2);
+
+            transition:
+                transform 0.3s;
+        }
+
+        .tech:hover {
+
+            transform: translateY(-4px);
+        }
+
+        /* Reference */
+
+        .reference-container {
+
+            padding: 25px;
+
+            border-radius: 15px;
+
+            background:
+                rgba(0, 0, 0, 0.25);
+
+            border:
+                1px solid rgba(255,255,255,0.15);
+        }
+
+        .reference-title {
+
+            font-size: 14px;
+
+            text-transform: uppercase;
+
+            letter-spacing: 2px;
+
+            color: #cbd5e1;
+
+            margin-bottom: 10px;
+        }
+
+        .reference-code {
+
+            font-size: 30px;
+
+            font-weight: bold;
+
+            letter-spacing: 4px;
+
+            background:
+                linear-gradient(
+                    90deg,
+                    #00f2fe,
+                    #00ff87,
+                    #ffe259,
+                    #ff00cc
+                );
+
+            -webkit-background-clip: text;
+
+            -webkit-text-fill-color: transparent;
+
+            animation:
+                glow 2s infinite alternate;
+        }
+
+        @keyframes glow {
+
+            from {
+                filter: brightness(1);
+            }
+
+            to {
+                filter: brightness(1.6);
+            }
+        }
+
+        /* Countdown */
+
+        .countdown {
+
+            margin-top: 15px;
+
+            color: #cbd5e1;
+
+            font-size: 14px;
+        }
+
+        .countdown-number {
+
+            color: #00ff87;
+
+            font-weight: bold;
+
+            font-size: 18px;
+        }
+
+        /* Progress bar */
+
+        .progress {
+
+            width: 100%;
+
+            height: 6px;
+
+            background:
+                rgba(255,255,255,0.15);
+
+            border-radius: 10px;
+
+            margin-top: 15px;
+
+            overflow: hidden;
+        }
+
+        .progress-bar {
+
+            height: 100%;
+
+            width: 100%;
+
+            background:
+                linear-gradient(
+                    90deg,
+                    #00f2fe,
+                    #00ff87,
+                    #ff00cc
+                );
+
+            border-radius: 10px;
+
+            animation:
+                countdown 5s linear forwards;
+        }
+
+        @keyframes countdown {
+
+            from {
+                width: 100%;
+            }
+
+            to {
+                width: 0%;
+            }
+        }
+
+        /* Status */
+
+        .status {
+
+            margin-top: 25px;
+
+            font-size: 14px;
+
+            color: #86efac;
+        }
+
+        .status-dot {
+
+            display: inline-block;
+
+            width: 10px;
+
+            height: 10px;
+
+            background: #22c55e;
+
+            border-radius: 50%;
+
+            margin-right: 7px;
+
+            box-shadow:
+                0 0 10px #22c55e;
+        }
+
+        /* Footer */
+
+        .footer {
+
+            margin-top: 25px;
+
+            font-size: 13px;
+
+            color: #94a3b8;
+
+            line-height: 1.6;
+        }
+
+        /* Mobile */
+
+        @media (max-width: 600px) {
+
+            .container {
+
+                padding: 30px 20px;
+            }
+
+            h1 {
+
+                font-size: 30px;
+            }
+
+            .subtitle {
+
+                font-size: 17px;
+            }
+
+            .reference-code {
+
+                font-size: 20px;
+
+                letter-spacing: 2px;
+            }
+
+            .icon {
+
+                font-size: 45px;
+            }
+        }
+
     </style>
 </head>
+
 <body>
-    <div class="card">
-        <h1>Cloud & DevOps Engineer Portfolio</h1>
-        <p>Automated deployment powered by Terraform, Ansible, Docker, and GitHub Actions.</p>
+
+    <div class="container">
+
+        <div class="icon">
+            🚀
+        </div>
+
+        <h1>
+            IWEBOR EMMANUEL
+        </h1>
+
+        <div class="subtitle">
+            Cloud & DevOps Engineer
+        </div>
+
+        <div class="description">
+
+            Building reliable, scalable and automated
+            infrastructure using modern Cloud and
+            DevOps technologies.
+
+        </div>
+
+
+        <!-- Technologies -->
+
+        <div class="technologies">
+
+            <div class="tech">
+                AWS
+            </div>
+
+            <div class="tech">
+                Terraform
+            </div>
+
+            <div class="tech">
+                Ansible
+            </div>
+
+            <div class="tech">
+                Docker
+            </div>
+
+            <div class="tech">
+                Kubernetes
+            </div>
+
+            <div class="tech">
+                GitHub Actions
+            </div>
+
+            <div class="tech">
+                CI/CD
+            </div>
+
+        </div>
+
+
+        <!-- Reference -->
+
+        <div class="reference-container">
+
+            <div class="reference-title">
+                Live Deployment Reference
+            </div>
+
+            <div
+                id="referenceCode"
+                class="reference-code">
+                Generating...
+            </div>
+
+            <div class="countdown">
+
+                Page automatically refreshes in
+
+                <span
+                    id="countdown"
+                    class="countdown-number">
+                    5
+                </span>
+
+                seconds
+
+            </div>
+
+            <div class="progress">
+
+                <div
+                    class="progress-bar">
+                </div>
+
+            </div>
+
+        </div>
+
+
+        <!-- Status -->
+
+        <div class="status">
+
+            <span class="status-dot"></span>
+
+            Application Online •
+            Docker Deployment Active
+
+        </div>
+
+
+        <!-- Footer -->
+
+        <div class="footer">
+
+            Automated deployment powered by
+
+            <strong>
+                Terraform
+            </strong>
+            •
+            <strong>
+                Ansible
+            </strong>
+            •
+            <strong>
+                Docker
+            </strong>
+            •
+            <strong>
+                GitHub Actions
+            </strong>
+
+        </div>
+
     </div>
+
+
+    <script>
+
+        /*
+         * Generate a unique reference code
+         * every time the page loads.
+         */
+
+        function generateReferenceCode() {
+
+            const timestamp =
+                Date.now()
+                .toString(36)
+                .toUpperCase();
+
+            const randomPart =
+                Math.random()
+                .toString(36)
+                .substring(2, 8)
+                .toUpperCase();
+
+            const referenceCode =
+                `DEV-${timestamp}-${randomPart}`;
+
+            document.getElementById(
+                "referenceCode"
+            ).textContent = referenceCode;
+        }
+
+
+        /*
+         * Generate reference code immediately.
+         */
+
+        generateReferenceCode();
+
+
+        /*
+         * Countdown timer.
+         */
+
+        let seconds = 5;
+
+        setInterval(function () {
+
+            seconds--;
+
+            document.getElementById(
+                "countdown"
+            ).textContent = seconds;
+
+            /*
+             * The meta refresh will reload
+             * the entire page after 5 seconds.
+             */
+
+        }, 1000);
+
+    </script>
+
 </body>
 </html>
 
