@@ -1,5 +1,6 @@
 ---
 - name: Configure Server & Deploy Container Applications
+# Updated Python bootstrap``
   hosts: webservers
   become: yes
 
